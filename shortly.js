@@ -2,6 +2,8 @@ var express = require('express');
 var util = require('./lib/utility');
 var partials = require('express-partials');
 var bodyParser = require('body-parser');
+var logger = require('./lib/logger');
+var session = require('express-session')
 
 
 var db = require('./app/config');
@@ -15,6 +17,13 @@ var app = express();
 
 app.set('views', __dirname + '/views');
 app.set('view engine', 'ejs');
+
+app.use(session({
+  secret: 'mySecret',
+  resave: true,
+  saveUninitialized: false
+}));
+app.use(logger);
 app.use(partials());
 // Parse JSON (uniform resource locators)
 app.use(bodyParser.json());
@@ -25,6 +34,11 @@ app.use(express.static(__dirname + '/public'));
 
 app.get('/', 
 function(req, res) {
+  // if ( util.checkUser(req) )   {
+  //   res.render('index');
+  // } else {
+  //   res.redirect('/login');
+  // }
   res.render('index');
 });
 
@@ -106,15 +120,48 @@ function(req, res) {
   var username = req.body.username;
   var password = req.body.password;
 
-  new User();
-  //Maybe   
-    /*Users.create({
-      username: username,
-      password: password
-    })
-    .then(function() {}) 
-    */
-})
+ 
+  Users.create({
+    username: username,
+    password: password
+  })
+  .then(function(user) {
+    util.createSession(user.attributes.id, req);
+    res.redirect('/');
+    //how do we check for an error?
+  });
+    
+});
+
+app.post('/login', 
+  function(req, res) {
+    var username = req.body.username;
+    var password = req.body.password;
+
+    // if username exists within the users table,
+      // if password = password in users
+        // redirect to '/'
+      // if wrong password
+        // redirect back to the login page
+    // if username doesn't exist
+      // redirect back to login
+
+    new User({ username: username }).fetch()
+      .then( function( user ) {
+        if ( user ) {
+          if ( user.attributes.password === password ) {
+            util.createSession(user.attributes.id, req);
+            res.redirect('/');
+          } else {
+            res.redirect('/login');
+          }
+        } else {
+          res.redirect('/login');
+        }
+      });
+
+
+  });
 
 
 /************************************************************/
