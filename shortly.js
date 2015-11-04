@@ -20,7 +20,7 @@ app.set('view engine', 'ejs');
 
 app.use(session({
   secret: 'mySecret',
-  resave: false,
+  resave: true,
   saveUninitialized: true
 }));
 app.use(logger);
@@ -150,8 +150,10 @@ app.post('/login',
       .then( function( user ) {
         if ( user ) {
           if ( user.attributes.password === password ) {
-            util.createSession(user.attributes.id, req);
-            res.redirect('/');
+
+                util.createSession(user.attributes.id, req);
+                res.redirect('/');
+          
           } else {
             res.redirect('/login');
           }
