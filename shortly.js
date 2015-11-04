@@ -20,8 +20,8 @@ app.set('view engine', 'ejs');
 
 app.use(session({
   secret: 'mySecret',
-  resave: true,
-  saveUninitialized: false
+  resave: false,
+  saveUninitialized: true
 }));
 app.use(logger);
 app.use(partials());
@@ -32,7 +32,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
 
 
-app.get('/', 
+app.get('/', util.checkUser,
 function(req, res) {
   // if ( util.checkUser(req) )   {
   //   res.render('index');
@@ -42,12 +42,12 @@ function(req, res) {
   res.render('index');
 });
 
-app.get('/create', 
+app.get('/create', util.checkUser,
 function(req, res) {
   res.render('index');
 });
 
-app.get('/links', 
+app.get('/links', util.checkUser,
 function(req, res) {
   Links.reset().fetch().then(function(links) {
     res.send(200, links.models);
@@ -72,7 +72,7 @@ app.get('/login',
   });
 
 
-app.post('/links', 
+app.post('/links', util.checkUser,
 function(req, res) {
   var uri = req.body.url;
 
