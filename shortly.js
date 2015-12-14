@@ -2,6 +2,8 @@ var express = require('express');
 var util = require('./lib/utility');
 var partials = require('express-partials');
 var bodyParser = require('body-parser');
+var logger = require('./lib/logger');
+var session = require('express-session')
 
 
 var db = require('./app/config');
@@ -15,6 +17,13 @@ var app = express();
 
 app.set('views', __dirname + '/views');
 app.set('view engine', 'ejs');
+
+app.use(session({
+  secret: 'mySecret',
+  resave: true,
+  saveUninitialized: true
+}));
+app.use(logger);
 app.use(partials());
 // Parse JSON (uniform resource locators)
 app.use(bodyParser.json());
@@ -22,24 +31,48 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
 
-app.get('/', 
+
+app.get('/', util.checkUser, 02048c6ad6840224ef15ad631a2134e699b310ce
+function(req, res) {
+  // if ( util.checkUser(req) )   {
+  //   res.render('index');
+  // } else {
+  //   res.redirect('/login');
+  // }
+  res.render('index');
+});
+
+app.get('/create', util.checkUser,
 function(req, res) {
   res.render('index');
 });
 
-app.get('/create', 
-function(req, res) {
-  res.render('index');
-});
-
-app.get('/links', 
+app.get('/links', util.checkUser,
 function(req, res) {
   Links.reset().fetch().then(function(links) {
     res.send(200, links.models);
   });
 });
 
-app.post('/links', 
+// path for /signup
+  // render template for signup
+app.get('/signup', 
+  function(req, res) {
+    console.log('in signup handler');
+    res.render('signup');
+  });
+
+
+
+// path for /login
+  // render template for login
+app.get('/login', 
+  function(req, res) {
+    res.render('login');
+  });
+
+
+app.post('/links', util.checkUser,
 function(req, res) {
   var uri = req.body.url;
 
@@ -75,6 +108,62 @@ function(req, res) {
 // Write your authentication routes here
 /************************************************************/
 
+app.post('/signup',
+function(req, res) {
+  //read the request (username/password) 
+  //initiate database connection to users table
+  //write username and password to users table
+    //if successful 
+      //send 302 redirect to '/'
+    //if err
+      //send 404
+  var username = req.body.username;
+  var password = req.body.password;
+
+ 
+  Users.create({
+    username: username,
+    password: password
+  })
+  .then(function(user) {
+    util.createSession(user.attributes.id, req);
+    res.redirect('/');
+    //how do we check for an error?
+  });
+    
+});
+
+app.post('/login', 
+  function(req, res) {
+    var username = req.body.username;
+    var password = req.body.password;
+
+    // if username exists within the users table,
+      // if password = password in users
+        // redirect to '/'
+      // if wrong password
+        // redirect back to the login page
+    // if username doesn't exist
+      // redirect back to login
+
+    new User({ username: username }).fetch()
+      .then( function( user ) {
+        if ( user ) {
+          if ( user.attributes.password === password ) {
+
+                util.createSession(user.attributes.id, req);
+                res.redirect('/');
+          
+          } else {
+            res.redirect('/login');
+          }
+        } else {
+          res.redirect('/login');
+        }
+      });
+
+
+  });
 
 
 /************************************************************/
